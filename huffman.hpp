@@ -58,10 +58,11 @@ template <typename T, typename U>
 HuffmanTree<T> generate_mapping(std::unordered_map<T, U>&& count_table) {
     using Node = std::pair<U, HuffmanTree<T>>;
     std::vector<Node> trees;
-    trees.reserve(count_table.size());
+    trees.reserve(count_table.size() + 1);
     for (auto&& [letter, count] : count_table) {
         trees.emplace_back(count, HuffmanTree(letter));
     }
+    trees.emplace_back(1, HuffmanTree<T>(EOF));
     std::make_heap(trees.begin(), trees.end(), std::greater<Node>());
     while (trees.size() > 1) {
         std::pop_heap(trees.begin(), trees.end(), std::greater<Node>());
@@ -119,11 +120,15 @@ void serialize_tree(obitstream& output, const HuffmanTree<T>& tree) {
 template <typename T>
 void serialize_text(std::istream& input, obitstream& output,
                     const std::unordered_map<T, std::vector<bool>>& encode) {
-    for (T letter; input.get(letter);) {
+    auto serialize = [&output, &encode](T letter) -> void {
         for (auto bit : encode.at(letter)) {
             output.write(bit);
         }
+    };
+    for (T letter; input.get(letter);) {
+        serialize(letter);
     }
+    serialize(EOF);
 }
 
 void check_invalid_file(ibitstream&);
@@ -157,6 +162,9 @@ void deserialize_text(ibitstream& input, std::ostream& output,
             node = bit ? node->right.get() : node->left.get();
         }
         if (node->left != nullptr) {
+            check_invalid_file(input);
+        }
+        if (node->letter == EOF) {
             break;
         }
         output << node->letter;
