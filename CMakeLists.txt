@@ -19,8 +19,8 @@ project(Compression VERSION 1.0.0)
 
 add_executable(Compression main.cpp bitstream.cpp huffman.cpp)
 
-set(IS_TESTING_ON ON)
-if(${IS_TESTING_ON})
+set(COMPILE_TESTS OFF CACHE BOOL "compile tests")
+if(${COMPILE_TESTS})
   # include(FetchContent) FetchContent_Declare(googletest GITHUB
   # https://github.com/google/googletest.git)
   # FetchContent_MakeAvailable(googletest)
