@@ -55,24 +55,25 @@ struct HuffmanTree {
 
 template <typename T, typename U>
     requires std::is_integral_v<U> && std::is_unsigned_v<U>
-HuffmanTree<T> generate_mapping(std::unordered_map<T, U>&& count_table) {
+HuffmanTree<T> generate_mapping(const std::unordered_map<T, U>& count_table) {
     using Node = std::pair<U, HuffmanTree<T>>;
     std::vector<Node> trees;
-    trees.reserve(count_table.size() + 1);
-    for (auto&& [letter, count] : count_table) {
+    trees.reserve(count_table.size());
+    for (auto& [letter, count] : count_table) {
         trees.emplace_back(count, HuffmanTree(letter));
     }
-    trees.emplace_back(1, HuffmanTree<T>(EOF));
     std::make_heap(trees.begin(), trees.end(), std::greater<Node>());
+
     while (trees.size() > 1) {
         std::pop_heap(trees.begin(), trees.end(), std::greater<Node>());
         auto smallest = std::move(trees.back());
         trees.pop_back();
+
         std::pop_heap(trees.begin(), trees.end(), std::greater<Node>());
         auto larger = std::move(trees.back());
-        trees.pop_back();
+
         // Tree will be heavier (has more nodes) to the right
-        trees.emplace_back(
+        trees.back() = std::make_pair(
             smallest.first + larger.first,
             HuffmanTree(std::move(smallest.second), std::move(larger.second)));
         std::push_heap(trees.begin(), trees.end(), std::greater<Node>());
@@ -80,6 +81,7 @@ HuffmanTree<T> generate_mapping(std::unordered_map<T, U>&& count_table) {
     return std::move(trees.back().second);
 }
 
+namespace detail {
 template <typename T>
 void generate_inverse_mapping(const HuffmanTree<T>& tree,
                               std::unordered_map<T, std::vector<bool>>& table,
@@ -94,13 +96,14 @@ void generate_inverse_mapping(const HuffmanTree<T>& tree,
     generate_inverse_mapping(*tree.right, table, encoding);
     encoding.pop_back();
 }
+}  // namespace detail
 
 template <typename T>
 std::unordered_map<T, std::vector<bool>> generate_inverse_mapping(
     const HuffmanTree<T>& tree) {
     std::unordered_map<T, std::vector<bool>> table;
     std::vector<bool> encoding;
-    generate_inverse_mapping(tree, table, encoding);
+    detail::generate_inverse_mapping(tree, table, encoding);
     return table;
 }
 
@@ -117,32 +120,40 @@ void serialize_tree(obitstream& output, const HuffmanTree<T>& tree) {
     serialize_tree(output, *tree.right);
 }
 
+namespace detail {
+template <typename T>
+void serialize_letter(obitstream& output,
+                      const std::unordered_map<T, std::vector<bool>>& encode,
+                      T letter) {
+    for (auto bit : encode.at(letter)) {
+        output.write(bit);
+    }
+}
+}  // namespace detail
+
 template <typename T>
 void serialize_text(std::istream& input, obitstream& output,
                     const std::unordered_map<T, std::vector<bool>>& encode) {
-    auto serialize = [&output, &encode](T letter) -> void {
-        for (auto bit : encode.at(letter)) {
-            output.write(bit);
-        }
-    };
     for (T letter; input.get(letter);) {
-        serialize(letter);
+        detail::serialize_letter(output, encode, letter);
     }
-    serialize(EOF);
+    detail::serialize_letter<T>(output, encode, EOF);
 }
 
+namespace detail {
 void check_invalid_file(ibitstream&);
+}
 
 // TODO: works with any character encoding (not just ASCII)
 template <typename T>
 HuffmanTree<T> deserialize_tree(ibitstream& input) {
     bool bit;
     input >> bit;
-    check_invalid_file(input);
+    detail::check_invalid_file(input);
     HuffmanTree<T> node;
     if (bit) {
         node.letter = input.read_byte();
-        check_invalid_file(input);
+        detail::check_invalid_file(input);
     } else {
         node.left =
             std::make_unique<HuffmanTree<T>>(deserialize_tree<T>(input));
@@ -162,7 +173,7 @@ void deserialize_text(ibitstream& input, std::ostream& output,
             node = bit ? node->right.get() : node->left.get();
         }
         if (node->left != nullptr) {
-            check_invalid_file(input);
+            detail::check_invalid_file(input);
         }
         if (node->letter == EOF) {
             break;
