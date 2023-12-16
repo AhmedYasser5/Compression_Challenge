@@ -16,6 +16,7 @@ unordered_map<char, uint64_t> generate_count_table(istream& buffer) {
     while (buffer.get(letter)) {
         ++count[letter];
     }
+    ++count[EOF];
     return count;
 }
 
@@ -25,12 +26,13 @@ void compress(const char* filename) {
         throw ios::failure("No such file to compress!");
     }
     auto count_table = generate_count_table(input);
-    auto tree = Huffman::generate_mapping(std::move(count_table));
+    auto tree = Huffman::generate_mapping(count_table);
     auto encode = Huffman::generate_inverse_mapping(tree);
     obitstream output(filename + ".huf"s);
     Huffman::serialize_tree(output, tree);
-    input.close();
-    input.open(filename);
+
+    input.clear();
+    input.seekg(ios::beg);
     Huffman::serialize_text(input, output, encode);
 }
 
@@ -42,7 +44,6 @@ void decompress(const char* filename) {
     auto tree = Huffman::deserialize_tree<char>(input);
     ofstream output(filename + ".fuh"s);
     Huffman::deserialize_text(input, output, tree);
-    output.flush();
 }
 
 int main(int argc, char** argv) {
