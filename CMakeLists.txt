@@ -7,15 +7,17 @@ set(CMAKE_BUILD_TYPE
     "Debug"
     CACHE STRING "Default build type")
 set(CMAKE_CXX_FLAGS_DEBUG
-    "-Og -ggdb3 -fverbose-asm -Wall -Wextra"
+    "-Og -ggdb3 -fverbose-asm -Wall -Wextra -fsanitize=address -fsanitize=undefined -fsanitize=leak"
     CACHE STRING "Debug Configuration Flags")
+set(CMAKE_CXX_FLAGS_RELEASE
+    "-O2 -Wall -Wextra -flto=auto -march=native"
+    CACHE STRING "Release Configuration Flags")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 project(Compression VERSION 1.0.0)
 
-list(APPEND sources ./bitstream.cpp ./huffman.cpp)
-add_executable(Compression ./main.cpp "${sources}")
+add_executable(Compression main.cpp bitstream.cpp huffman.cpp)
 
 set(IS_TESTING_ON ON)
 if(${IS_TESTING_ON})
@@ -27,11 +29,12 @@ if(${IS_TESTING_ON})
 
   include(GoogleTest)
   find_package(GTest)
-  list(APPEND unit_tests ibitstream obitstream huffman)
 
-  foreach(unit_test IN LISTS unit_tests)
-    add_executable(${unit_test} tests/${unit_test}.cpp "${sources}")
+  add_executable(ibitstream tests/ibitstream.cpp bitstream.cpp)
+  add_executable(obitstream tests/obitstream.cpp bitstream.cpp)
+  add_executable(huffman tests/huffman.cpp bitstream.cpp huffman.cpp)
 
+  foreach(unit_test IN ITEMS ibitstream obitstream huffman)
     target_include_directories(${unit_test} PUBLIC ${CMAKE_SOURCE_DIR})
     target_link_libraries(${unit_test} GTest::gtest_main)
 
