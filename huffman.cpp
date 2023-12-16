@@ -1,6 +1,6 @@
 #include "huffman.hpp"
 
-void Huffman::check_invalid_file(ibitstream& input) {
+void Huffman::detail::check_invalid_file(ibitstream& input) {
     if (input) {
         return;
     }
