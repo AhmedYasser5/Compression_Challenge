@@ -32,4 +32,5 @@ $ ctest --test-dir build
 
 ## TODO
 
-- Support Unicode characters
+- Support unicode characters
+- Support multiple files
