@@ -6,7 +6,7 @@ This is a program to compress and decompress text files using Huffman encoding t
 
 To use the program, run the following line first to compile it:
 ```bash
-$ cmake -S . -B build && cmake --build build --config Release -j
+$ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 ```
 
 To run the program, run the following command:
@@ -22,7 +22,7 @@ The supported operations are:
 
 To compile the tests, run the following line:
 ```bash
-$ cmake -S . -B build -DCOMPILE_TESTS=ON && cmake --build build --config Release -j
+$ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON && cmake --build build -j
 ```
 
 To run the tests, run the following command:
