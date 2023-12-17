@@ -15,12 +15,15 @@ set(CMAKE_CXX_FLAGS_RELEASE
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
+
 project(Compression VERSION 1.0.0)
 
 add_executable(Compression main.cpp bitstream.cpp huffman.cpp)
 
-set(COMPILE_TESTS OFF CACHE BOOL "compile tests")
-if(${COMPILE_TESTS})
+set(BUILD_TESTS
+    OFF
+    CACHE BOOL "compile tests")
+if(${BUILD_TESTS})
   # include(FetchContent) FetchContent_Declare(googletest GITHUB
   # https://github.com/google/googletest.git)
   # FetchContent_MakeAvailable(googletest)
