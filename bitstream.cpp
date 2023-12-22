@@ -2,86 +2,88 @@
 
 using namespace std;
 
-ibitstream& ibitstream::operator>>(bool& bit) {
+BitStream::ibitstream& BitStream::ibitstream::operator>>(bool& bit) {
     bit = read();
     return *this;
 }
 
-void ibitstream::refill() {
+void BitStream::ibitstream::refill() {
     if (shifts != 0) {
         return;
     }
-    input.read(reinterpret_cast<char*>(&byte), 1);
+    input.read(reinterpret_cast<character_type*>(&unit), 1);
     shifts = 8;
 }
 
-bool ibitstream::read() {
+bool BitStream::ibitstream::read() {
     refill();
     --shifts;
-    bool ret = byte >> 7;
-    byte <<= 1;
+    bool ret = unit >> 7;
+    unit <<= 1;
     return ret;
 }
 
-uint8_t ibitstream::read_byte() {
+BitStream::character_type BitStream::ibitstream::read_unit() {
     refill();
-    uint8_t ret_byte = byte;
+    auto ret_byte = unit;
     const auto remaining = 8 - shifts;
     shifts = 0;
     refill();
-    ret_byte |= byte >> (8 - remaining);
-    byte <<= remaining;
+    ret_byte |= unit >> (8 - remaining);
+    unit <<= remaining;
     shifts -= remaining;
     return ret_byte;
 }
 
-void ibitstream::align() {
+void BitStream::ibitstream::align() {
     if (shifts == 8) {
         return;
     }
     shifts = 0;
 }
 
-void obitstream::flush() {
+void BitStream::obitstream::flush() {
     if (shifts != 0) {
         return;
     }
-    output.write(reinterpret_cast<const char*>(&byte), 1);
+    output.write(reinterpret_cast<character_type*>(&unit), 1);
     shifts = 8;
 }
 
-void obitstream::close() {
+void BitStream::obitstream::close() {
     align();
     flush();
     output.close();
 }
 
-obitstream& obitstream::operator<<(bool bit) { return write(bit); }
+BitStream::obitstream& BitStream::obitstream::operator<<(bool bit) {
+    return write(bit);
+}
 
-obitstream& obitstream::write(bool bit) {
+BitStream::obitstream& BitStream::obitstream::write(bool bit) {
     flush();
     --shifts;
-    byte <<= 1;
-    byte |= bit;
+    unit <<= 1;
+    unit |= bit;
     return *this;
 }
 
-obitstream& obitstream::write_byte(uint8_t byte) {
+BitStream::obitstream& BitStream::obitstream::write_unit(std::uint8_t unit) {
     flush();
     const auto remaining = 8 - shifts;
-    this->byte <<= shifts;
-    this->byte |= byte >> remaining;
+    this->unit <<= shifts;
+    this->unit |= unit >> remaining;
     shifts = 0;
     flush();
-    this->byte = byte;
+    this->unit = unit;
     shifts -= remaining;
     return *this;
 }
 
-void obitstream::align() {
+void BitStream::obitstream::align() {
     if (shifts == 8) {
         return;
     }
-    byte <<= shifts;
+    unit <<= shifts;
     shifts = 0;
 }

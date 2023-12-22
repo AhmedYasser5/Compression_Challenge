@@ -4,6 +4,9 @@
 #include <fstream>
 #include <string>
 
+namespace BitStream {
+using character_type = char;
+
 class ibitstream {
    public:
     ibitstream() = default;
@@ -19,7 +22,7 @@ class ibitstream {
     ibitstream(ibitstream&&) = default;
     ibitstream& operator>>(bool& bit);
     bool read();
-    std::uint8_t read_byte();
+    character_type read_unit();
     operator bool() const { return (bool)input; }
     bool operator!() const { return !input; }
     void align();
@@ -28,8 +31,8 @@ class ibitstream {
     void refill();
 
    private:
-    std::ifstream input;
-    std::uint8_t byte;
+    std::basic_ifstream<character_type> input;
+    std::uint8_t unit;
     std::uint8_t shifts;
 };
 
@@ -48,14 +51,15 @@ class obitstream {
     obitstream(obitstream&&) = default;
     obitstream& operator<<(bool bit);
     obitstream& write(bool bit);
-    obitstream& write_byte(std::uint8_t byte);
+    obitstream& write_unit(std::uint8_t unit);
     void align();
 
    private:
     void flush();
 
    private:
-    std::ofstream output;
-    std::uint8_t byte;
+    std::basic_ofstream<character_type> output;
+    std::uint8_t unit;
     std::uint8_t shifts;
 };
+}  // namespace BitStream
