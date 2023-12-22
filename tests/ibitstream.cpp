@@ -9,12 +9,14 @@
 
 using namespace std;
 
+using character_type = BitStream::character_type;
+
 class ibitstreamTesting : public testing::TestWithParam<string> {
    public:
     ~ibitstreamTesting() override {}
 
     void SetUp() override {
-        ofstream out(filename);
+        basic_ofstream<character_type> out(filename);
         out << GetParam() << endl;
         out.close();
         input.open(filename);
@@ -22,16 +24,16 @@ class ibitstreamTesting : public testing::TestWithParam<string> {
 
    public:
     static const char* filename;
-    ibitstream input;
+    BitStream::ibitstream input;
 };
 
 const char* ibitstreamTesting::filename = "ibitstream.test.in";
 
 TEST_P(ibitstreamTesting, BitByBitOperator) {
     for (auto letter : GetParam()) {
-        auto byte = static_cast<uint8_t>(letter);
-        for (int _ = 0; _ < 8; _++, byte <<= 1) {
-            const bool bit = byte >> 7;
+        auto unit = letter;
+        for (int _ = 0; _ < 8; _++, unit <<= 1) {
+            const bool bit = unit >> 7;
             bool read_bit;
             input >> read_bit;
             EXPECT_EQ(read_bit, bit);
@@ -41,9 +43,9 @@ TEST_P(ibitstreamTesting, BitByBitOperator) {
 
 TEST_P(ibitstreamTesting, BitByBit) {
     for (auto letter : GetParam()) {
-        auto byte = static_cast<uint8_t>(letter);
-        for (int _ = 0; _ < 8; _++, byte <<= 1) {
-            const bool bit = byte >> 7;
+        auto unit = letter;
+        for (int _ = 0; _ < 8; _++, unit <<= 1) {
+            const bool bit = unit >> 7;
             EXPECT_EQ(input.read(), bit);
         }
     }
@@ -52,7 +54,7 @@ TEST_P(ibitstreamTesting, BitByBit) {
 TEST_P(ibitstreamTesting, ByteByByte) {
     for (auto letter : GetParam()) {
         const auto byte = static_cast<uint8_t>(letter);
-        EXPECT_EQ(input.read_byte(), byte);
+        EXPECT_EQ(input.read_unit(), byte);
     }
 }
 
@@ -89,12 +91,12 @@ TEST_P(ibitstreamTesting, Mixed) {
                 ASSERT_EQ(input.read(), read());
                 continue;
             }
-            uint8_t byte = 0;
+            character_type unit = 0;
             for (int _ = 0; _ < 8; _++) {
-                byte <<= 1;
-                byte |= read();
+                unit <<= 1;
+                unit |= read();
             }
-            ASSERT_EQ(input.read_byte(), byte);
+            ASSERT_EQ(input.read_unit(), unit);
         }
         if (mask == 0) {
             break;
@@ -106,5 +108,5 @@ TEST_P(ibitstreamTesting, Mixed) {
 
 INSTANTIATE_TEST_SUITE_P(
     ibitstreamSuite, ibitstreamTesting,
-    testing::Values("Hello, World!"s, "Ahmed Yasser"s, ""s,
-                    "The big brown fox jumps over the lazy dog"s));
+    testing::Values("Hello, World!", "Ahmed Yasser", "",
+                    "The big brown fox jumps over the lazy dog"));

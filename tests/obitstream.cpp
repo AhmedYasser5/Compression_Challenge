@@ -9,36 +9,47 @@
 
 using namespace std;
 
+using character_type = BitStream::character_type;
+
 class obitstreamTesting : public testing::TestWithParam<string> {
    public:
     ~obitstreamTesting() override {}
 
-    void SetUp() override { output.open(filename); }
+    void SetUp() override {
+        param.reserve(GetParam().size());
+        for (auto letter : GetParam()) {
+            param += *(character_type*)(&letter);
+        }
+        output.open(filename);
+    }
 
     void Validate() {
         output.close();
-        ifstream input(filename, ios::binary);
-        char read_byte;
+        basic_ifstream<character_type> input(filename, ios::binary);
+        character_type read_byte;
         for (auto letter : GetParam()) {
-            const auto byte = static_cast<uint8_t>(letter);
+            const auto byte = letter;
             input.read(&read_byte, 1);
-            EXPECT_EQ(byte, static_cast<uint8_t>(read_byte));
+            EXPECT_EQ(byte, read_byte);
         }
         EXPECT_EQ(input.peek(), EOF);
     }
+
+    const string& GetParam() { return param; }
 
     void TearDown() override { Validate(); }
 
    public:
     static const char* filename;
-    obitstream output;
+    BitStream::obitstream output;
+    string param;
 };
 
 const char* obitstreamTesting::filename = "obitstream.test.in";
 
 TEST_P(obitstreamTesting, BitByBitOperator) {
     for (auto letter : GetParam()) {
-        auto byte = static_cast<uint8_t>(letter);
+        auto byte = letter;
         for (int _ = 0; _ < 8; _++, byte <<= 1) {
             const bool bit = byte >> 7;
             output << bit;
@@ -48,7 +59,7 @@ TEST_P(obitstreamTesting, BitByBitOperator) {
 
 TEST_P(obitstreamTesting, BitByBit) {
     for (auto letter : GetParam()) {
-        auto byte = static_cast<uint8_t>(letter);
+        auto byte = letter;
         for (int _ = 0; _ < 8; _++, byte <<= 1) {
             const bool bit = byte >> 7;
             output.write(bit);
@@ -58,19 +69,19 @@ TEST_P(obitstreamTesting, BitByBit) {
 
 TEST_P(obitstreamTesting, ByteByByte) {
     for (auto letter : GetParam()) {
-        const auto byte = static_cast<uint8_t>(letter);
-        output.write_byte(byte);
+        const auto byte = letter;
+        output.write_unit(byte);
     }
 }
 
 TEST_P(obitstreamTesting, Mixed) {
     decltype(GetParam().cbegin()) it;
     uint8_t shifts;
-    auto write = [&it, &shifts]() -> bool {
+    auto write = [this, &it, &shifts]() -> bool {
         if (it == GetParam().cend()) {
             return false;
         }
-        const auto ret = static_cast<uint8_t>(*it) & (1 << (7 - shifts));
+        const auto ret = *it & (1 << (7 - shifts));
         if (++shifts == 8) {
             shifts = 0;
             ++it;
@@ -96,12 +107,12 @@ TEST_P(obitstreamTesting, Mixed) {
                 output.write(write());
                 continue;
             }
-            uint8_t byte = 0;
+            character_type unit = 0;
             for (int _ = 0; _ < 8; _++) {
-                byte <<= 1;
-                byte |= write();
+                unit <<= 1;
+                unit |= write();
             }
-            output.write_byte(byte);
+            output.write_unit(unit);
         }
         Validate();
         if (mask == 0) {
@@ -113,5 +124,5 @@ TEST_P(obitstreamTesting, Mixed) {
 
 INSTANTIATE_TEST_SUITE_P(
     obitstreamSuite, obitstreamTesting,
-    testing::Values("Hello, World!"s, "Ahmed Yasser"s, ""s,
-                    "The big brown fox jumps over the lazy dog"s));
+    testing::Values("Hello, World!", "Ahmed Yasser", "",
+                    "The big brown fox jumps over the lazy dog"));
