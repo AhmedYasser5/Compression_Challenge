@@ -12,20 +12,14 @@
 
 using namespace std;
 
-using character_type = char;
+using character_type = Huffman::character_type;
 using count_type = std::size_t;
-using HufTree = Huffman::HuffmanTree<character_type>;
+using HufTree = Huffman::HuffmanTree;
 
 class HuffmanTesting : public testing::TestWithParam<string> {
    public:
     ~HuffmanTesting() override {}
 };
-
-static string to_string(const char& e) { return "'"s + e + "'"; }
-
-static string to_string(const string& e) { return "\"" + e + "\""; }
-
-static string to_string(const bool& e) { return e ? "true" : "false"; }
 
 template <typename T>
 static string to_string(const vector<T>& e);
@@ -78,6 +72,21 @@ static string to_string(const T& e) {
     str.pop_back();
     str.back() = '}';
     return str;
+}
+
+template <>
+string to_string(const character_type& e) {
+    return "'" + string(1, e) + "'";
+}
+
+template <>
+string to_string(const string& e) {
+    return "\"" + e + "\"";
+}
+
+template <>
+string to_string(const bool& e) {
+    return e ? "true" : "false";
 }
 
 static unordered_map<character_type, count_type> get_count(
@@ -166,13 +175,13 @@ ADD_TEST(generate_inverse_mapping, const HufTree& tree,
 ADD_TEST(tree_serialization, const HufTree& tree) {
     auto filename = "huffman.tree";
     {
-        obitstream output(filename);
+        BitStream::obitstream output(filename);
         Huffman::serialize_tree(output, tree);
     }
     HufTree deserialized_tree;
     ASSERT_NO_THROW(deserialized_tree = ({
-                        ibitstream input(filename);
-                        Huffman::deserialize_tree<character_type>(input);
+                        BitStream::ibitstream input(filename);
+                        Huffman::deserialize_tree(input);
                     }));
     queue<pair<const HufTree*, const HufTree*>> bfs;
     bfs.emplace(&tree, &deserialized_tree);
@@ -197,13 +206,13 @@ ADD_TEST(text_serialization, const string& param,
          const HufTree& tree) {
     auto filename = "huffman.text";
     {
-        istringstream input(param);
-        obitstream output(filename);
+        basic_istringstream<character_type> input(param);
+        BitStream::obitstream output(filename);
         Huffman::serialize_text(input, output, encode);
     }
-    ostringstream output;
+    basic_ostringstream<character_type> output;
     {
-        ibitstream input(filename);
+        BitStream::ibitstream input(filename);
         ASSERT_NO_THROW(Huffman::deserialize_text(input, output, tree));
     }
     EXPECT_EQ(output.str(), param);
@@ -221,8 +230,62 @@ TEST_P(HuffmanTesting, integration_test) {
 INSTANTIATE_TEST_SUITE_P(
     Huffman, HuffmanTesting,
     testing::Values(
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aenean sed adipiscing diam donec adipiscing tristique risus nec. Bibendum neque egestas congue quisque. Purus faucibus ornare suspendisse sed nisi. Suspendisse potenti nullam ac tortor vitae purus faucibus ornare suspendisse. Ultricies leo integer malesuada nunc vel. Pellentesque elit eget gravida cum sociis. Adipiscing vitae proin sagittis nisl rhoncus. Lobortis feugiat vivamus at augue eget arcu dictum varius duis. Orci sagittis eu volutpat odio. Ac orci phasellus egestas tellus rutrum tellus pellentesque. Convallis convallis tellus id interdum velit laoreet id donec. Tempor nec feugiat nisl pretium fusce id velit."s,
-        "Proin fermentum leo vel orci porta. Diam maecenas sed enim ut sem viverra aliquet. Nulla aliquet porttitor lacus luctus accumsan. Placerat duis ultricies lacus sed turpis tincidunt. Arcu risus quis varius quam quisque. Bibendum ut tristique et egestas quis ipsum suspendisse. Senectus et netus et malesuada. Ultricies integer quis auctor elit sed vulputate mi sit. Feugiat scelerisque varius morbi enim nunc faucibus a pellentesque. Integer enim neque volutpat ac tincidunt. Nibh tortor id aliquet lectus proin. Sit amet mattis vulputate enim nulla. Amet nisl purus in mollis nunc. In metus vulputate eu scelerisque felis imperdiet proin fermentum."s,
-        "Egestas sed sed risus pretium quam. Sed risus ultricies tristique nulla aliquet enim. Vitae turpis massa sed elementum tempus egestas. Scelerisque mauris pellentesque pulvinar pellentesque habitant morbi. Adipiscing elit ut aliquam purus sit amet. Mauris a diam maecenas sed enim ut sem. Habitant morbi tristique senectus et netus et malesuada fames ac. Consequat id porta nibh venenatis cras sed felis eget. Eleifend donec pretium vulputate sapien. Est ultricies integer quis auctor elit sed vulputate. Adipiscing elit pellentesque habitant morbi tristique senectus. Interdum consectetur libero id faucibus. Sed felis eget velit aliquet. Pharetra massa massa ultricies mi quis hendrerit. Aliquet sagittis id consectetur purus ut faucibus pulvinar. Quam pellentesque nec nam aliquam sem. Sapien nec sagittis aliquam malesuada bibendum arcu vitae elementum. Elementum integer enim neque volutpat ac tincidunt vitae semper quis. Euismod in pellentesque massa placerat duis ultricies lacus sed turpis."s,
-        "Aliquet risus feugiat in ante metus dictum at tempor commodo. Volutpat maecenas volutpat blandit aliquam etiam erat. Interdum velit euismod in pellentesque massa. Metus vulputate eu scelerisque felis imperdiet proin fermentum. Enim eu turpis egestas pretium aenean pharetra. Vitae turpis massa sed elementum tempus egestas sed sed. A pellentesque sit amet porttitor eget dolor. Eu augue ut lectus arcu bibendum at varius vel. Justo nec ultrices dui sapien eget mi proin. Risus quis varius quam quisque id diam. Duis at consectetur lorem donec massa sapien. Eget magna fermentum iaculis eu non diam phasellus vestibulum lorem. Pretium nibh ipsum consequat nisl vel pretium lectus quam id."s,
-        "Purus viverra accumsan in nisl nisi scelerisque eu. Lacinia quis vel eros donec ac. Vitae tortor condimentum lacinia quis vel. Scelerisque eu ultrices vitae auctor eu augue ut. Nibh sed pulvinar proin gravida hendrerit. Pellentesque pulvinar pellentesque habitant morbi tristique senectus. Sit amet justo donec enim diam vulputate ut pharetra sit. Volutpat lacus laoreet non curabitur gravida arcu. Suspendisse in est ante in. Pellentesque eu tincidunt tortor aliquam nulla facilisi. Urna duis convallis convallis tellus id. Dignissim suspendisse in est ante in nibh. Ut sem viverra aliquet eget sit."s));
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do "
+        "eiusmod tempor incididunt ut labore et dolore magna aliqua. Aenean "
+        "sed adipiscing diam donec adipiscing tristique risus nec. Bibendum "
+        "neque egestas congue quisque. Purus faucibus ornare suspendisse sed "
+        "nisi. Suspendisse potenti nullam ac tortor vitae purus faucibus "
+        "ornare suspendisse. Ultricies leo integer malesuada nunc vel. "
+        "Pellentesque elit eget gravida cum sociis. Adipiscing vitae proin "
+        "sagittis nisl rhoncus. Lobortis feugiat vivamus at augue eget arcu "
+        "dictum varius duis. Orci sagittis eu volutpat odio. Ac orci "
+        "phasellus egestas tellus rutrum tellus pellentesque. Convallis "
+        "convallis tellus id interdum velit laoreet id donec. Tempor nec "
+        "feugiat nisl pretium fusce id velit.",
+        "Proin fermentum leo vel orci porta. Diam maecenas sed enim ut sem "
+        "viverra aliquet. Nulla aliquet porttitor lacus luctus accumsan. "
+        "Placerat duis ultricies lacus sed turpis tincidunt. Arcu risus quis "
+        "varius quam quisque. Bibendum ut tristique et egestas quis ipsum "
+        "suspendisse. Senectus et netus et malesuada. Ultricies integer quis "
+        "auctor elit sed vulputate mi sit. Feugiat scelerisque varius morbi "
+        "enim nunc faucibus a pellentesque. Integer enim neque volutpat ac "
+        "tincidunt. Nibh tortor id aliquet lectus proin. Sit amet mattis "
+        "vulputate enim nulla. Amet nisl purus in mollis nunc. In metus "
+        "vulputate eu scelerisque felis imperdiet proin fermentum.",
+        "Egestas sed sed risus pretium quam. Sed risus ultricies tristique "
+        "nulla aliquet enim. Vitae turpis massa sed elementum tempus "
+        "egestas. Scelerisque mauris pellentesque pulvinar pellentesque "
+        "habitant morbi. Adipiscing elit ut aliquam purus sit amet. Mauris a "
+        "diam maecenas sed enim ut sem. Habitant morbi tristique senectus et "
+        "netus et malesuada fames ac. Consequat id porta nibh venenatis cras "
+        "sed felis eget. Eleifend donec pretium vulputate sapien. Est "
+        "ultricies integer quis auctor elit sed vulputate. Adipiscing elit "
+        "pellentesque habitant morbi tristique senectus. Interdum "
+        "consectetur libero id faucibus. Sed felis eget velit aliquet. "
+        "Pharetra massa massa ultricies mi quis hendrerit. Aliquet sagittis "
+        "id consectetur purus ut faucibus pulvinar. Quam pellentesque nec "
+        "nam aliquam sem. Sapien nec sagittis aliquam malesuada bibendum "
+        "arcu vitae elementum. Elementum integer enim neque volutpat ac "
+        "tincidunt vitae semper quis. Euismod in pellentesque massa placerat "
+        "duis ultricies lacus sed turpis.",
+        "Aliquet risus feugiat in ante metus dictum at tempor commodo. "
+        "Volutpat maecenas volutpat blandit aliquam etiam erat. Interdum "
+        "velit euismod in pellentesque massa. Metus vulputate eu scelerisque "
+        "felis imperdiet proin fermentum. Enim eu turpis egestas pretium "
+        "aenean pharetra. Vitae turpis massa sed elementum tempus egestas "
+        "sed sed. A pellentesque sit amet porttitor eget dolor. Eu augue ut "
+        "lectus arcu bibendum at varius vel. Justo nec ultrices dui sapien "
+        "eget mi proin. Risus quis varius quam quisque id diam. Duis at "
+        "consectetur lorem donec massa sapien. Eget magna fermentum iaculis "
+        "eu non diam phasellus vestibulum lorem. Pretium nibh ipsum "
+        "consequat nisl vel pretium lectus quam id.",
+        "Purus viverra accumsan in nisl nisi scelerisque eu. Lacinia quis "
+        "vel eros donec ac. Vitae tortor condimentum lacinia quis vel. "
+        "Scelerisque eu ultrices vitae auctor eu augue ut. Nibh sed pulvinar "
+        "proin gravida hendrerit. Pellentesque pulvinar pellentesque "
+        "habitant morbi tristique senectus. Sit amet justo donec enim diam "
+        "vulputate ut pharetra sit. Volutpat lacus laoreet non curabitur "
+        "gravida arcu. Suspendisse in est ante in. Pellentesque eu tincidunt "
+        "tortor aliquam nulla facilisi. Urna duis convallis convallis tellus "
+        "id. Dignissim suspendisse in est ante in nibh. Ut sem viverra "
+        "aliquet eget sit."));
